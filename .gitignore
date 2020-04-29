@@ -1,4 +1,5 @@
 .env
 .byebug_history
 .bundle/vendor
+Gemfile.lock
 
