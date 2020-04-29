@@ -1,16 +1,51 @@
 require "octokit"
-require 'dotenv'
+require 'optparse'
 
 class Prchekcer
 
-  def initialize(*args)
-    Dotenv.load
-    @client = Octokit::Client.new(:access_token => ENV['GITHUB_ACCESS_TOKEN'])
+  def initialize
+    parse_command_line_arguments
+    @client = Octokit::Client.new(:access_token => @access_token)
     @user = @client.user
     @user.login
-    @grace_period_in_days = ENV['GRACE_PERIOD'] ? ENV['GRACE_PERIOD'].to_i : 1
-    @max_allowed_prs =  ENV['GRACE_PERIOD'] ? ENV['MAX_ALLOWED_PRS'].to_i : 0
-    @security_vulnerability_only =  ENV['SECURITY_VULNERABILITIES_ONLY'] == "true"
+  end
+
+  def parse_command_line_arguments
+    options = {}
+    OptionParser.new do |opts|
+      opts.banner = "Usage: prchecker.rb [options]"
+
+      opts.on('-g [ARG]', '--grace_period [ARG]', "Specify the grace_period") do |v|
+        options[:grace_period] = v
+      end
+
+      opts.on('-s [ARG]', '--security_vulnerabilities_only [ARG]', "Specify the security_vulnerabilities_only") do |v|
+        options[:security_vulnerabilities_only] = v
+      end
+
+      opts.on('-m [ARG]', '--max_allowed_prs [ARG]', "Specify the max_allowed_prs") do |v|
+        options[:max_allowed_prs] = v
+      end
+
+      opts.on('-r [ARG]', '--repo_name [ARG]', "Specify the repo_name") do |v|
+        options[:repo_name] = v
+      end
+
+      opts.on('-g [ARG]', '--github_access_token [ARG]', "Specify the github_access_token") do |v|
+        options[:github_access_token] = v
+      end
+
+    end.parse!
+    if options[:github_access_token].nil? || options[:repo_name].nil?
+      STDERR.puts("ABORTED! Missing github_access_token or repo_name")
+      exit(false)
+    end
+
+    @grace_period_in_days = (options[:grace_period] ||  1).to_i
+    @max_allowed_prs =  (options[:max_allowed_prs] ||  1).to_i
+    @security_vulnerability_only =  options[:security_vulnerabilities_only] ==  "true"
+    @access_token = options[:github_access_token]
+    @repo_name = options[:repo_name]
   end
 
   def execute
@@ -22,9 +57,9 @@ class Prchekcer
 
   def fetch_pull_requests
     if @security_vulnerability_only
-      @client.pull_requests(ENV['REPO_NAME'], :state => 'open').select{|pr| pr.user.login == 'dependabot-preview[bot]' && pr.labels.map(&:name).include?('security')}
+      @client.pull_requests(@repo_name, :state => 'open').select{|pr| pr.user.login == 'dependabot-preview[bot]' && pr.labels.map(&:name).include?('security')}
     else
-      @client.pull_requests(ENV['REPO_NAME'], :state => 'open').select{|pr| pr.user.login == 'dependabot-preview[bot]'}
+      @client.pull_requests(@repo_name, :state => 'open').select{|pr| pr.user.login == 'dependabot-preview[bot]'}
     end
   end
 
@@ -44,6 +79,7 @@ class Prchekcer
   end
 
 end
+
 
 prchecker  = Prchekcer.new
 prchecker.execute
