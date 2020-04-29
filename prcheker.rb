@@ -1,5 +1,4 @@
 require "octokit"
-require "byebug"
 require 'dotenv'
 
 class Prchekcer
