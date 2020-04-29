@@ -1,5 +1,8 @@
-require "octokit"
+
 require 'optparse'
+require "bundler/cli"
+Bundler.load.specs
+require File.expand_path(File.join(Bundler.rubygems.find_name('octokit').first.full_gem_path, "lib/octokit.rb"), __FILE__)
 
 class Prchekcer
 
