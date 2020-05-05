@@ -1,6 +1,7 @@
 
 require 'optparse'
 require "bundler/cli"
+require "byebug"
 Bundler.load.specs
 require File.expand_path(File.join(Bundler.rubygems.find_name('octokit').first.full_gem_path, "lib/octokit.rb"), __FILE__)
 
@@ -8,6 +9,7 @@ class Prchekcer
 
   def initialize
     parse_command_line_arguments
+    debugger
     @client = Octokit::Client.new(:access_token => @access_token)
     @user = @client.user
     @user.login
@@ -76,7 +78,7 @@ class Prchekcer
   end
 
   def grace_period_over_for(pull_requests)
-    day_in_seconds = 100
+    day_in_seconds = 86400
     grace_period = Time.now - (day_in_seconds * @grace_period_in_days)
     pull_requests = pull_requests.select{|pr| pr.created_at < grace_period}
   end
